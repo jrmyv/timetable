@@ -1,0 +1,41 @@
+body {
+    background: #000;
+    color: #fff;
+    display: flex;
+    flex-flow: column;
+    align-items: center;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+section {
+    width: min(90vw, 120ch);
+    margin: 10px auto; /* top/bottom 10px, horizontal auto to center */
+    background: #222;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+#courseSelection {
+    column-count: 3;
+    column-gap: 20px;
+}
+
+table {
+    width: 100%;
+}
+
+table * {
+    text-align: start;
+}
+table th, table td {
+    padding: 5px;
+    white-space: pre-wrap;
+}
+
+table thead th {
+    border-bottom: solid rgb(100, 100, 100) 1px;
+}
+
+table tbody th {
+    border-right: solid rgb(100, 100, 100) 1px;
+}

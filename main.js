@@ -1,4 +1,5 @@
 let timetableData;
+let filteredTTData;
 
 window.onload = () => {
     init();
@@ -44,23 +45,20 @@ function renderSelect(parent, list) {
     const div = document.createElement('div');
 
     for(let course of list) {
-        div.appendChild(createSelectElement(course));
+        div.appendChild(createSelectElement(div, course));
     }
 
     parent.appendChild(div);
-
-    const button = document.createElement('button');
-    button.textContent = "Submit";
-    button.addEventListener('click', function() { handleCourseSelection(div) });
-    parent.appendChild(button);
+    handleCourseSelection(div); //Initial Table Render
 }
 
-function createSelectElement(content) {
+function createSelectElement(selectionRange, content) {
     const div = document.createElement('div');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.id = content.id;
     checkbox.value = content.id;
+    checkbox.addEventListener('change', function() { handleCourseSelection(selectionRange) });
 
     const label = document.createElement('label');
     label.htmlFor = checkbox.id;
@@ -75,13 +73,15 @@ function createSelectElement(content) {
 function handleCourseSelection(range) {
     const checkboxes = range.querySelectorAll('input:checked');
     const selected = Array.from(checkboxes).map(cb => cb.value);
-    renderTTData(filterTTData(selected));
+    filteredTTData = filterTTData(selected);
+    renderTTData(filteredTTData);
 }
 
 function filterTTData(selected) {
-    const filteredTTData = {...timetableData};
+    const filtered = JSON.parse(JSON.stringify(timetableData)); //"dirty" deep copy
+    if(selected.length === 0) return filtered;
 
-    for(let day of filteredTTData.days) {
+    for(let day of filtered.days) {
         for(let period of day.periods) {
             const filterSet = new Set(selected);
             const result = period.courses.filter(obj => filterSet.has(obj.id));
@@ -89,9 +89,77 @@ function filterTTData(selected) {
         }
     }
 
-    return filteredTTData;
+    return filtered;
 }
 
 function renderTTData(data) {
-    console.log(data);
+    const oldTable = document.getElementById('ttTable')
+    if(oldTable) oldTable.remove();
+
+    const transposed = transposeTTData(data);
+
+    const table = document.createElement('table');
+    table.id = "ttTable";
+    const thead = document.createElement('thead');
+    const tr = document.createElement('tr');
+    const emptyth = document.createElement('th');
+    tr.appendChild(emptyth);
+    for(let day of data.days) {
+        const th = document.createElement('th');
+        th.textContent = day.name;
+        tr.appendChild(th);
+    }
+    thead.appendChild(tr);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    for(let period of transposed.periods) {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.textContent = period.name;
+        tr.appendChild(th);
+        for(let day of period.days) {
+            const td = document.createElement('td');
+            let content = "";
+            if(day.courses?.length > 0) {
+                for(let course of day.courses) {
+                    content = content + course.name + "\n";
+                }
+            }
+            td.textContent = content;
+            tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    document.getElementById('output').appendChild(table);
+}
+
+function transposeTTData(data) {
+    const result = { version: data.version, periods: [] };
+
+    // Collect all unique period names
+    const allPeriods = new Set();
+    for (let day of data.days) {
+        for (let period of day.periods) {
+            allPeriods.add(period.name);
+        }
+    }
+
+    // Build result.periods with all days
+    for (let periodName of allPeriods) {
+        const periodObj = { name: periodName, days: [] };
+
+        for (let day of data.days) {
+            const dayPeriod = day.periods.find(p => p.name === periodName);
+            periodObj.days.push({
+                name: day.name,
+                courses: dayPeriod ? dayPeriod.courses : []
+            });
+        }
+
+        result.periods.push(periodObj);
+    }
+
+    return result;
 }
